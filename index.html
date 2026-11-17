@@ -3,122 +3,168 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Крипто Спред</title>
+<title>Крипто Спред · VYZYA</title>
+<meta name="description" content="Цени на живо от Binance, OKX, Bybit, Kraken и Coinbase и разликата между тях. Проект на VYZYA.">
+<meta name="theme-color" content="#070B14">
+<link rel="icon" href="https://vyzya.com/assets/favicon.svg" type="image/svg+xml">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Unbounded:wght@400;600&family=Onest:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600&display=swap">
 <style>
-/* Layout: summary strip on top, then one wide table — coins as rows, exchanges as columns, spread last. */
-:root {
-  --bg: #f4f5f7;
-  --surface: #ffffff;
-  --ink: #161a22;
-  --muted: #667085;
-  --line: #e2e5ea;
-  --accent: #c2410c;
-  --low: #0f7a4a;
-  --low-bg: #e3f5ec;
-  --high: #b42318;
-  --high-bg: #fdecea;
-  --font-body: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
-  --font-num: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, monospace;
-  color-scheme: light;
+/* VYZYA visual system (from vyzya.com): dark navy, neon blue, Unbounded / Onest / JetBrains Mono. Single dark theme. */
+:root{
+  --bg:#070B14; --bg-2:#0A101D; --card:#0C1322; --line:#172238; --line-2:#1B2944; --line-3:#22304C;
+  --text:#E8EDF7; --muted:#B4C0D4; --dim:#8C9AB3;
+  --blue:#3BA4FF; --neon:#7CCBFF; --ink:#06101F; --live:#7FE0B0; --hot:#FF8F8F;
+  --low-bg:rgba(127,224,176,.09); --high-bg:rgba(255,143,143,.09);
+  --display:'Unbounded','Arial Black',sans-serif;
+  --body:'Onest','Segoe UI',Arial,sans-serif;
+  --mono:'JetBrains Mono',Consolas,monospace;
+  color-scheme:dark;
 }
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) {
-    --bg: #0e1116; --surface: #161a22; --ink: #e8ebf0; --muted: #8b93a3; --line: #262c37;
-    --accent: #fb923c; --low: #4ade80; --low-bg: #12301f; --high: #f87171; --high-bg: #3a1716;
-    color-scheme: dark;
-  }
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--bg);color:var(--text);font-family:var(--body);font-size:16px;line-height:1.55;-webkit-font-smoothing:antialiased}
+a{color:var(--neon)}a:hover{color:#B5E0FF}
+:focus-visible{outline:2px solid var(--neon);outline-offset:3px;border-radius:4px}
+.wrap{max-width:1240px;margin:0 auto;padding:0 32px}
+
+.site-header{border-bottom:1px solid var(--line)}
+.site-header .wrap{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:12px 32px;padding-top:16px;padding-bottom:16px}
+.brand{display:flex;align-items:center;gap:12px;text-decoration:none;color:var(--text);min-height:44px}
+.brand svg{overflow:visible;filter:drop-shadow(0 0 4px rgba(110,190,255,.7))}
+.brand span{font-family:var(--display);font-weight:600;font-size:17px;letter-spacing:.22em}
+.controls{display:flex;align-items:center;gap:14px;font-family:var(--mono);font-size:12px;color:var(--dim)}
+button{font-family:var(--body);font-size:14px;font-weight:600;color:var(--ink);background:var(--blue);border:0;border-radius:6px;min-height:40px;padding:0 18px;cursor:pointer;transition:background .2s,box-shadow .2s}
+button:hover{background:var(--neon);box-shadow:0 0 24px rgba(59,164,255,.45)}
+
+.grid-bg{background-image:linear-gradient(#0F1829 1px,transparent 1px),linear-gradient(90deg,#0F1829 1px,transparent 1px);background-size:48px 48px}
+.hero{position:relative;border-bottom:1px solid var(--line)}
+.hero::after{content:"";position:absolute;inset:auto 0 0 0;height:80px;background:linear-gradient(rgba(7,11,20,0),var(--bg));pointer-events:none}
+.hero .wrap{position:relative;z-index:1;display:flex;flex-direction:column;gap:14px;padding-top:48px;padding-bottom:40px}
+.eyebrow{margin:0;font-family:var(--mono);font-size:12px;letter-spacing:.18em;color:var(--dim);text-transform:uppercase}
+h1{margin:0;font-family:var(--display);font-weight:600;font-size:clamp(28px,4vw,48px);line-height:1.15;text-wrap:balance}
+h1 span{color:var(--neon);text-shadow:0 0 18px rgba(59,164,255,.55)}
+.lead{margin:0;max-width:620px;color:var(--muted);font-size:17px;text-wrap:pretty}
+.status{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px}
+.pill{font-family:var(--mono);font-size:11px;letter-spacing:.12em;text-transform:uppercase;border:1px solid var(--line-3);color:var(--muted);border-radius:999px;padding:5px 12px;display:inline-flex;align-items:center;gap:8px}
+.pill::before{content:"";width:7px;height:7px;border-radius:50%;background:var(--dim)}
+.pill.ok{color:var(--live);border-color:#235A45}
+.pill.ok::before{background:var(--live);box-shadow:0 0 8px var(--live)}
+.pill.err{color:var(--hot);border-color:#5A2A2A}
+.pill.err::before{background:var(--hot)}
+
+main .wrap{display:flex;flex-direction:column;gap:20px;padding-top:28px;padding-bottom:56px}
+.top{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(240px,100%),1fr));gap:16px}
+.tile{background:var(--card);border:1px solid var(--line-2);border-radius:12px;padding:20px 22px;display:flex;flex-direction:column;gap:6px;border-top:2px solid var(--blue)}
+.tile:nth-child(2){border-top-color:var(--neon)}
+.tile:nth-child(3){border-top-color:var(--text)}
+.tile .k{font-family:var(--mono);font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--dim)}
+.tile .v{font-family:var(--mono);font-size:24px;font-weight:600;font-variant-numeric:tabular-nums}
+.tile .d{font-size:14px;color:var(--muted)}
+
+.tablebox{overflow-x:auto;background:var(--card);border:1px solid var(--line-2);border-radius:12px}
+table{border-collapse:collapse;width:100%;min-width:860px}
+th,td{padding:12px 14px;text-align:right;border-bottom:1px solid var(--line);white-space:nowrap}
+tr:last-child td{border-bottom:0}
+tbody tr:hover td{background-color:rgba(59,164,255,.04)}
+th{font-family:var(--mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--dim);font-weight:500;background:var(--card)}
+th span{color:#5F6E89}
+th:first-child,td:first-child{text-align:left;position:sticky;left:0;background:var(--card);z-index:1}
+td{font-family:var(--mono);font-variant-numeric:tabular-nums;font-size:14px}
+.coin{font-family:var(--body);display:flex;align-items:center;gap:12px}
+.coin b{font-family:var(--display);font-weight:600;font-size:14px;letter-spacing:.04em}
+.coin small{color:var(--dim);font-size:12px;display:block;line-height:1.2}
+canvas.spark{width:72px;height:24px;display:block}
+.cell-p{display:block}
+.cell-c{display:block;font-size:11px;color:var(--dim)}
+.cell-c.up{color:var(--live)}
+.cell-c.down{color:var(--hot)}
+td.lo{background:var(--low-bg);box-shadow:inset 2px 0 0 var(--live)}
+td.lo .cell-p{color:var(--live);font-weight:600}
+td.hi{background:var(--high-bg);box-shadow:inset 2px 0 0 var(--hot)}
+td.hi .cell-p{color:var(--hot);font-weight:600}
+td.na{color:#4A5876}
+.spread{font-weight:600}
+.spread.big{color:var(--neon);text-shadow:0 0 12px rgba(59,164,255,.5)}
+.spread small{display:block;font-family:var(--body);font-weight:400;font-size:12px;color:var(--dim)}
+
+.legend{display:flex;flex-wrap:wrap;gap:8px 20px;font-size:13px;color:var(--dim)}
+.sw{display:inline-block;width:12px;height:12px;border-radius:3px;vertical-align:-2px;margin-right:6px}
+.note{margin:0;color:var(--dim);font-size:14px;max-width:72ch;text-wrap:pretty}
+
+.site-footer{border-top:1px solid var(--line)}
+.site-footer .wrap{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:12px 32px;padding-top:28px;padding-bottom:28px;font-size:14px;color:var(--dim)}
+.site-footer .brand span{font-size:14px}
+.site-footer p{margin:0}
+
+@media (max-width:600px){
+  .wrap{padding:0 16px}
+  .hero .wrap{padding-top:32px;padding-bottom:28px}
 }
-:root[data-theme="dark"] {
-  --bg: #0e1116; --surface: #161a22; --ink: #e8ebf0; --muted: #8b93a3; --line: #262c37;
-  --accent: #fb923c; --low: #4ade80; --low-bg: #12301f; --high: #f87171; --high-bg: #3a1716;
-  color-scheme: dark;
-}
-* { box-sizing: border-box; }
-html, body { margin: 0; }
-body { background: var(--bg); color: var(--ink); font-family: var(--font-body); font-size: 15px; line-height: 1.45; }
-.wrap { max-width: 1100px; margin: 0 auto; padding: 20px 16px 40px; display: grid; gap: 18px; }
-header { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 8px 16px; }
-h1 { margin: 0; font-size: 1.6rem; font-weight: 700; letter-spacing: -0.01em; text-wrap: balance; }
-h1 span { color: var(--accent); }
-.sub { color: var(--muted); font-size: 0.9rem; margin: 2px 0 0; }
-.controls { display: flex; align-items: center; gap: 10px; font-size: 0.85rem; color: var(--muted); }
-button { font: inherit; font-weight: 600; color: var(--ink); background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 6px 12px; cursor: pointer; }
-button:hover { border-color: var(--accent); }
-button:focus-visible, select:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
-.status { display: flex; flex-wrap: wrap; gap: 6px; }
-.pill { font-size: 0.78rem; font-weight: 600; padding: 3px 10px; border-radius: 999px; border: 1px solid var(--line); background: var(--surface); display: inline-flex; align-items: center; gap: 6px; }
-.pill::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: var(--muted); }
-.pill.ok::before { background: var(--low); }
-.pill.err::before { background: var(--high); }
-.top { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px; }
-.tile { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; }
-.tile .k { font-size: 0.78rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.04em; }
-.tile .v { font-family: var(--font-num); font-size: 1.35rem; font-weight: 600; font-variant-numeric: tabular-nums; }
-.tile .d { font-size: 0.85rem; color: var(--muted); }
-.tablebox { overflow-x: auto; background: var(--surface); border: 1px solid var(--line); border-radius: 10px; }
-table { border-collapse: collapse; width: 100%; min-width: 820px; }
-th, td { padding: 10px 12px; text-align: right; border-bottom: 1px solid var(--line); white-space: nowrap; }
-tr:last-child td { border-bottom: 0; }
-th { font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--muted); font-weight: 600; background: var(--surface); }
-th:first-child, td:first-child { text-align: left; position: sticky; left: 0; background: var(--surface); z-index: 1; }
-td { font-family: var(--font-num); font-variant-numeric: tabular-nums; font-size: 0.92rem; }
-.coin { font-family: var(--font-body); display: flex; align-items: center; gap: 10px; }
-.coin b { font-weight: 700; }
-.coin small { color: var(--muted); font-size: 0.78rem; display: block; line-height: 1.1; }
-canvas.spark { width: 72px; height: 24px; display: block; }
-.cell-p { display: block; }
-.cell-c { display: block; font-size: 0.75rem; color: var(--muted); }
-.cell-c.up { color: var(--low); }
-.cell-c.down { color: var(--high); }
-td.lo { background: var(--low-bg); }
-td.lo .cell-p { color: var(--low); font-weight: 600; }
-td.hi { background: var(--high-bg); }
-td.hi .cell-p { color: var(--high); font-weight: 600; }
-td.na { color: var(--muted); }
-.spread { font-weight: 600; }
-.spread.big { color: var(--accent); }
-.spread small { display: block; font-weight: 400; font-size: 0.75rem; color: var(--muted); }
-.note { color: var(--muted); font-size: 0.82rem; max-width: 70ch; margin: 0; }
-.legend { display: flex; flex-wrap: wrap; gap: 14px; font-size: 0.82rem; color: var(--muted); }
-.sw { display: inline-block; width: 12px; height: 12px; border-radius: 3px; vertical-align: -2px; margin-right: 5px; }
-@media (prefers-reduced-motion: no-preference) { td { transition: background-color .4s; } }
+@media (prefers-reduced-motion:no-preference){td{transition:background-color .4s}}
 </style>
 </head>
 <body>
-<div class="wrap">
-  <header>
-    <div>
-      <h1>Крипто <span>Спред</span></h1>
-      <p class="sub">Цени на живо от 5 борси и разликата между най-евтината и най-скъпата</p>
-    </div>
+<header class="site-header">
+  <div class="wrap">
+    <a class="brand" href="https://vyzya.com/" aria-label="VYZYA — начало">
+      <svg aria-hidden="true" width="36" height="31" viewBox="0 0 187 159">
+        <polygon fill="#7CCBFF" points="4,11 38.32,11 88,116.7 102.43,86 138.54,86 142.3,94 116.67,94 88,155 24.55,20"/>
+        <polygon fill="#7CCBFF" points="118,4 182.86,142 150,142 159.69,131 118,42.3 88,106.1 79,86.95"/>
+      </svg>
+      <span>VYZYA</span>
+    </a>
     <div class="controls">
       <span id="clock">Зареждане…</span>
       <button id="refresh" type="button">Обнови</button>
     </div>
-  </header>
-
-  <div class="status" id="status"></div>
-
-  <div class="top" id="tiles"></div>
-
-  <div class="tablebox">
-    <table>
-      <thead><tr id="thead"></tr></thead>
-      <tbody id="tbody"></tbody>
-    </table>
   </div>
+</header>
 
-  <div class="legend">
-    <span><i class="sw" style="background:var(--low-bg);border:1px solid var(--low)"></i>Най-ниска цена</span>
-    <span><i class="sw" style="background:var(--high-bg);border:1px solid var(--high)"></i>Най-висока цена</span>
-    <span>Под цената: промяна за 24 ч.</span>
+<section class="hero grid-bg" aria-labelledby="title">
+  <div class="wrap">
+    <p class="eyebrow">Проект на VYZYA · на живо</p>
+    <h1 id="title">Крипто <span>Спред</span></h1>
+    <p class="lead">Цени от пет борси едновременно и разликата между най-евтината и най-скъпата.</p>
+    <div class="status" id="status"></div>
   </div>
+</section>
 
-  <p class="note">Binance, OKX и Bybit котират срещу USDT, Kraken и Coinbase срещу USD. Спредът е разлика в средните цени и не включва такси за търговия и теглене, които обикновено са 0,1–0,5% на страна. Графиката до всяка монета показва средната цена от момента на отваряне на страницата. Обновяване на всеки 15 секунди.</p>
-</div>
+<main>
+  <div class="wrap">
+    <div class="top" id="tiles"></div>
+
+    <div class="tablebox">
+      <table>
+        <thead><tr id="thead"></tr></thead>
+        <tbody id="tbody"></tbody>
+      </table>
+    </div>
+
+    <div class="legend">
+      <span><i class="sw" style="background:var(--low-bg);border:1px solid var(--live)"></i>Най-ниска цена</span>
+      <span><i class="sw" style="background:var(--high-bg);border:1px solid var(--hot)"></i>Най-висока цена</span>
+      <span>Под цената: промяна за 24 ч.</span>
+    </div>
+
+    <p class="note">Binance, OKX и Bybit котират срещу USDT, Kraken и Coinbase срещу USD. Спредът е разлика в средните цени и не включва такси за търговия и теглене, които обикновено са 0,1–0,5% на страна. Графиката до всяка монета показва средната цена от момента на отваряне на страницата. Обновяване на всеки 15 секунди.</p>
+  </div>
+</main>
+
+<footer class="site-footer">
+  <div class="wrap">
+    <a class="brand" href="https://vyzya.com/" aria-label="VYZYA — начало">
+      <svg aria-hidden="true" width="28" height="24" viewBox="0 0 187 159">
+        <polygon fill="#7CCBFF" points="4,11 38.32,11 88,116.7 102.43,86 138.54,86 142.3,94 116.67,94 88,155 24.55,20"/>
+        <polygon fill="#7CCBFF" points="118,4 182.86,142 150,142 159.69,131 118,42.3 88,106.1 79,86.95"/>
+      </svg>
+      <span>VYZYA</span>
+    </a>
+    <p>Данни: публичните API на борсите. Не е инвестиционен съвет.</p>
+    <a href="https://vyzya.com/">vyzya.com</a>
+  </div>
+</footer>
 
 <script>
 const COINS = [
@@ -235,7 +281,7 @@ function fmtPct(x, digits = 2) {
 
 function buildHead() {
   const th = ['<th scope="col">Монета</th>'];
-  for (const ex of EXCHANGES) th.push('<th scope="col">' + ex.name + '<br><span style="font-weight:400">' + ex.quote + '</span></th>');
+  for (const ex of EXCHANGES) th.push('<th scope="col">' + ex.name + '<br><span>' + ex.quote + '</span></th>');
   th.push('<th scope="col">Спред</th>');
   document.getElementById("thead").innerHTML = th.join("");
 }
@@ -310,7 +356,7 @@ function drawSpark(cv, pts) {
   ctx.clearRect(0, 0, w, h);
   const css = getComputedStyle(document.documentElement);
   const line = css.getPropertyValue("--line").trim();
-  const accent = css.getPropertyValue("--accent").trim();
+  const accent = css.getPropertyValue("--neon").trim();
   ctx.strokeStyle = line; ctx.lineWidth = 2;
   ctx.beginPath(); ctx.moveTo(0, h - 2); ctx.lineTo(w, h - 2); ctx.stroke();
   if (pts.length < 2) return;
