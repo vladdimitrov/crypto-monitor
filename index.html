@@ -1,0 +1,370 @@
+<!DOCTYPE html>
+<html lang="bg">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Крипто Спред</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+/* Layout: summary strip on top, then one wide table — coins as rows, exchanges as columns, spread last. */
+:root {
+  --bg: #f4f5f7;
+  --surface: #ffffff;
+  --ink: #161a22;
+  --muted: #667085;
+  --line: #e2e5ea;
+  --accent: #c2410c;
+  --low: #0f7a4a;
+  --low-bg: #e3f5ec;
+  --high: #b42318;
+  --high-bg: #fdecea;
+  --font-body: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-num: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, monospace;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0e1116; --surface: #161a22; --ink: #e8ebf0; --muted: #8b93a3; --line: #262c37;
+    --accent: #fb923c; --low: #4ade80; --low-bg: #12301f; --high: #f87171; --high-bg: #3a1716;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0e1116; --surface: #161a22; --ink: #e8ebf0; --muted: #8b93a3; --line: #262c37;
+  --accent: #fb923c; --low: #4ade80; --low-bg: #12301f; --high: #f87171; --high-bg: #3a1716;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; }
+body { background: var(--bg); color: var(--ink); font-family: var(--font-body); font-size: 15px; line-height: 1.45; }
+.wrap { max-width: 1100px; margin: 0 auto; padding: 20px 16px 40px; display: grid; gap: 18px; }
+header { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 8px 16px; }
+h1 { margin: 0; font-size: 1.6rem; font-weight: 700; letter-spacing: -0.01em; text-wrap: balance; }
+h1 span { color: var(--accent); }
+.sub { color: var(--muted); font-size: 0.9rem; margin: 2px 0 0; }
+.controls { display: flex; align-items: center; gap: 10px; font-size: 0.85rem; color: var(--muted); }
+button { font: inherit; font-weight: 600; color: var(--ink); background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 6px 12px; cursor: pointer; }
+button:hover { border-color: var(--accent); }
+button:focus-visible, select:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.status { display: flex; flex-wrap: wrap; gap: 6px; }
+.pill { font-size: 0.78rem; font-weight: 600; padding: 3px 10px; border-radius: 999px; border: 1px solid var(--line); background: var(--surface); display: inline-flex; align-items: center; gap: 6px; }
+.pill::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: var(--muted); }
+.pill.ok::before { background: var(--low); }
+.pill.err::before { background: var(--high); }
+.top { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px; }
+.tile { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; }
+.tile .k { font-size: 0.78rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.04em; }
+.tile .v { font-family: var(--font-num); font-size: 1.35rem; font-weight: 600; font-variant-numeric: tabular-nums; }
+.tile .d { font-size: 0.85rem; color: var(--muted); }
+.tablebox { overflow-x: auto; background: var(--surface); border: 1px solid var(--line); border-radius: 10px; }
+table { border-collapse: collapse; width: 100%; min-width: 820px; }
+th, td { padding: 10px 12px; text-align: right; border-bottom: 1px solid var(--line); white-space: nowrap; }
+tr:last-child td { border-bottom: 0; }
+th { font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--muted); font-weight: 600; background: var(--surface); }
+th:first-child, td:first-child { text-align: left; position: sticky; left: 0; background: var(--surface); z-index: 1; }
+td { font-family: var(--font-num); font-variant-numeric: tabular-nums; font-size: 0.92rem; }
+.coin { font-family: var(--font-body); display: flex; align-items: center; gap: 10px; }
+.coin b { font-weight: 700; }
+.coin small { color: var(--muted); font-size: 0.78rem; display: block; line-height: 1.1; }
+canvas.spark { width: 72px; height: 24px; display: block; }
+.cell-p { display: block; }
+.cell-c { display: block; font-size: 0.75rem; color: var(--muted); }
+.cell-c.up { color: var(--low); }
+.cell-c.down { color: var(--high); }
+td.lo { background: var(--low-bg); }
+td.lo .cell-p { color: var(--low); font-weight: 600; }
+td.hi { background: var(--high-bg); }
+td.hi .cell-p { color: var(--high); font-weight: 600; }
+td.na { color: var(--muted); }
+.spread { font-weight: 600; }
+.spread.big { color: var(--accent); }
+.spread small { display: block; font-weight: 400; font-size: 0.75rem; color: var(--muted); }
+.note { color: var(--muted); font-size: 0.82rem; max-width: 70ch; margin: 0; }
+.legend { display: flex; flex-wrap: wrap; gap: 14px; font-size: 0.82rem; color: var(--muted); }
+.sw { display: inline-block; width: 12px; height: 12px; border-radius: 3px; vertical-align: -2px; margin-right: 5px; }
+@media (prefers-reduced-motion: no-preference) { td { transition: background-color .4s; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div>
+      <h1>Крипто <span>Спред</span></h1>
+      <p class="sub">Цени на живо от 5 борси и разликата между най-евтината и най-скъпата</p>
+    </div>
+    <div class="controls">
+      <span id="clock">Зареждане…</span>
+      <button id="refresh" type="button">Обнови</button>
+    </div>
+  </header>
+
+  <div class="status" id="status"></div>
+
+  <div class="top" id="tiles"></div>
+
+  <div class="tablebox">
+    <table>
+      <thead><tr id="thead"></tr></thead>
+      <tbody id="tbody"></tbody>
+    </table>
+  </div>
+
+  <div class="legend">
+    <span><i class="sw" style="background:var(--low-bg);border:1px solid var(--low)"></i>Най-ниска цена</span>
+    <span><i class="sw" style="background:var(--high-bg);border:1px solid var(--high)"></i>Най-висока цена</span>
+    <span>Под цената: промяна за 24 ч.</span>
+  </div>
+
+  <p class="note">Binance, OKX и Bybit котират срещу USDT, Kraken и Coinbase срещу USD. Спредът е разлика в средните цени и не включва такси за търговия и теглене, които обикновено са 0,1–0,5% на страна. Графиката до всяка монета показва средната цена от момента на отваряне на страницата. Обновяване на всеки 15 секунди.</p>
+</div>
+
+<script>
+const COINS = [
+  { s: "BTC", n: "Bitcoin" },
+  { s: "ETH", n: "Ethereum" },
+  { s: "SOL", n: "Solana" },
+  { s: "XRP", n: "XRP" },
+  { s: "BNB", n: "BNB" },
+  { s: "DOGE", n: "Dogecoin" },
+  { s: "ADA", n: "Cardano" },
+  { s: "LTC", n: "Litecoin" }
+];
+const REFRESH_MS = 15000;
+
+async function getJSON(url) {
+  const ctrl = new AbortController();
+  const t = setTimeout(() => ctrl.abort(), 8000);
+  try {
+    const r = await fetch(url, { signal: ctrl.signal });
+    if (!r.ok) throw new Error("HTTP " + r.status);
+    return await r.json();
+  } finally { clearTimeout(t); }
+}
+
+// Each fetcher returns { SYMBOL: { p: lastPrice, c: change24hPercent } }
+const EXCHANGES = [
+  {
+    id: "binance", name: "Binance", quote: "USDT",
+    async fetch() {
+      const syms = JSON.stringify(COINS.map(c => c.s + "USDT"));
+      const d = await getJSON("https://api.binance.com/api/v3/ticker/24hr?symbols=" + encodeURIComponent(syms));
+      const out = {};
+      for (const t of d) out[t.symbol.replace(/USDT$/, "")] = { p: +t.lastPrice, c: +t.priceChangePercent };
+      return out;
+    }
+  },
+  {
+    id: "okx", name: "OKX", quote: "USDT",
+    async fetch() {
+      const d = await getJSON("https://www.okx.com/api/v5/market/tickers?instType=SPOT");
+      const want = new Set(COINS.map(c => c.s + "-USDT"));
+      const out = {};
+      for (const t of d.data || []) {
+        if (!want.has(t.instId)) continue;
+        const p = +t.last, o = +t.open24h;
+        out[t.instId.split("-")[0]] = { p, c: o ? (p - o) / o * 100 : null };
+      }
+      return out;
+    }
+  },
+  {
+    id: "bybit", name: "Bybit", quote: "USDT",
+    async fetch() {
+      const d = await getJSON("https://api.bybit.com/v5/market/tickers?category=spot");
+      const want = new Set(COINS.map(c => c.s + "USDT"));
+      const out = {};
+      for (const t of (d.result && d.result.list) || []) {
+        if (!want.has(t.symbol)) continue;
+        out[t.symbol.replace(/USDT$/, "")] = { p: +t.lastPrice, c: +t.price24hPcnt * 100 };
+      }
+      return out;
+    }
+  },
+  {
+    id: "kraken", name: "Kraken", quote: "USD",
+    pairs: { BTC: "XBTUSD", ETH: "ETHUSD", SOL: "SOLUSD", XRP: "XRPUSD", BNB: "BNBUSD", DOGE: "XDGUSD", ADA: "ADAUSD", LTC: "LTCUSD" },
+    async fetch() {
+      const out = {};
+      await Promise.all(COINS.map(async c => {
+        const pair = this.pairs[c.s];
+        if (!pair) return;
+        try {
+          const d = await getJSON("https://api.kraken.com/0/public/Ticker?pair=" + pair);
+          if (d.error && d.error.length) return;
+          const t = Object.values(d.result || {})[0];
+          if (!t) return;
+          const p = +t.c[0], o = +t.o;
+          out[c.s] = { p, c: o ? (p - o) / o * 100 : null };
+        } catch (e) { /* pair not listed or failed */ }
+      }));
+      if (!Object.keys(out).length) throw new Error("no data");
+      return out;
+    }
+  },
+  {
+    id: "coinbase", name: "Coinbase", quote: "USD",
+    async fetch() {
+      const out = {};
+      await Promise.all(COINS.map(async c => {
+        try {
+          const d = await getJSON("https://api.exchange.coinbase.com/products/" + c.s + "-USD/stats");
+          const p = +d.last, o = +d.open;
+          if (p) out[c.s] = { p, c: o ? (p - o) / o * 100 : null };
+        } catch (e) { /* not listed (e.g. BNB) */ }
+      }));
+      if (!Object.keys(out).length) throw new Error("no data");
+      return out;
+    }
+  }
+];
+
+const state = { data: {}, ok: {}, history: {} };
+COINS.forEach(c => state.history[c.s] = []);
+
+function fmtPrice(p) {
+  if (p == null || !isFinite(p)) return "—";
+  const dec = p >= 1000 ? 2 : p >= 1 ? 4 : 5;
+  return p.toLocaleString("en-US", { minimumFractionDigits: dec, maximumFractionDigits: dec });
+}
+function fmtPct(x, digits = 2) {
+  if (x == null || !isFinite(x)) return "";
+  return (x > 0 ? "+" : "") + x.toFixed(digits) + "%";
+}
+
+function buildHead() {
+  const th = ['<th scope="col">Монета</th>'];
+  for (const ex of EXCHANGES) th.push('<th scope="col">' + ex.name + '<br><span style="font-weight:400">' + ex.quote + '</span></th>');
+  th.push('<th scope="col">Спред</th>');
+  document.getElementById("thead").innerHTML = th.join("");
+}
+
+function renderStatus() {
+  document.getElementById("status").innerHTML = EXCHANGES.map(ex => {
+    const s = state.ok[ex.id];
+    const cls = s === true ? "ok" : s === false ? "err" : "";
+    const label = s === false ? " · няма връзка" : "";
+    return '<span class="pill ' + cls + '">' + ex.name + label + '</span>';
+  }).join("");
+}
+
+function computeRows() {
+  return COINS.map(c => {
+    const prices = EXCHANGES.map(ex => {
+      const v = state.data[ex.id] && state.data[ex.id][c.s];
+      return v && isFinite(v.p) && v.p > 0 ? v : null;
+    });
+    const valid = prices.map((v, i) => v ? { i, p: v.p } : null).filter(Boolean);
+    let lo = null, hi = null, spread = null;
+    if (valid.length >= 2) {
+      lo = valid.reduce((a, b) => b.p < a.p ? b : a);
+      hi = valid.reduce((a, b) => b.p > a.p ? b : a);
+      spread = (hi.p - lo.p) / lo.p * 100;
+    }
+    const avg = valid.length ? valid.reduce((s, v) => s + v.p, 0) / valid.length : null;
+    return { c, prices, lo, hi, spread, avg };
+  });
+}
+
+function render() {
+  const rows = computeRows();
+  const tb = document.getElementById("tbody");
+  tb.innerHTML = rows.map(r => {
+    const cells = r.prices.map((v, i) => {
+      if (!v) return '<td class="na">—</td>';
+      const cls = r.lo && i === r.lo.i ? "lo" : r.hi && i === r.hi.i ? "hi" : "";
+      const dir = v.c > 0 ? "up" : v.c < 0 ? "down" : "";
+      return '<td class="' + cls + '"><span class="cell-p">' + fmtPrice(v.p) + '</span><span class="cell-c ' + dir + '">' + fmtPct(v.c) + '</span></td>';
+    }).join("");
+    let sp = '<td class="na">—</td>';
+    if (r.spread != null) {
+      const big = r.spread >= 0.3 ? " big" : "";
+      sp = '<td class="spread' + big + '">' + r.spread.toFixed(3) + '%<small>' +
+        EXCHANGES[r.lo.i].name + ' → ' + EXCHANGES[r.hi.i].name + '</small></td>';
+    }
+    return '<tr><td><div class="coin"><canvas class="spark" data-s="' + r.c.s + '" width="144" height="48" aria-hidden="true"></canvas><div><b>' +
+      r.c.s + '</b><small>' + r.c.n + '</small></div></div></td>' + cells + sp + '</tr>';
+  }).join("");
+  document.querySelectorAll("canvas.spark").forEach(cv => drawSpark(cv, state.history[cv.dataset.s]));
+  renderTiles(rows);
+  renderStatus();
+}
+
+function renderTiles(rows) {
+  const withSpread = rows.filter(r => r.spread != null);
+  const best = withSpread.sort((a, b) => b.spread - a.spread)[0];
+  const btc = rows.find(r => r.c.s === "BTC");
+  const okCount = EXCHANGES.filter(ex => state.ok[ex.id]).length;
+  const tiles = [];
+  if (btc && btc.avg) tiles.push(['Bitcoin, средна цена', '$' + fmtPrice(btc.avg), btc.spread != null ? 'Спред ' + btc.spread.toFixed(3) + '%' : '']);
+  if (best) tiles.push(['Най-голям спред', best.c.s + ' ' + best.spread.toFixed(3) + '%', 'Купи от ' + EXCHANGES[best.lo.i].name + ', продай в ' + EXCHANGES[best.hi.i].name]);
+  tiles.push(['Борси на линия', okCount + ' от ' + EXCHANGES.length, okCount < EXCHANGES.length ? 'Някои не отговарят' : 'Всички отговарят']);
+  document.getElementById("tiles").innerHTML = tiles.map(t =>
+    '<div class="tile"><div class="k">' + t[0] + '</div><div class="v">' + t[1] + '</div><div class="d">' + t[2] + '</div></div>').join("");
+}
+
+function drawSpark(cv, pts) {
+  const ctx = cv.getContext("2d");
+  const w = cv.width, h = cv.height;
+  ctx.clearRect(0, 0, w, h);
+  const css = getComputedStyle(document.documentElement);
+  const line = css.getPropertyValue("--line").trim();
+  const accent = css.getPropertyValue("--accent").trim();
+  ctx.strokeStyle = line; ctx.lineWidth = 2;
+  ctx.beginPath(); ctx.moveTo(0, h - 2); ctx.lineTo(w, h - 2); ctx.stroke();
+  if (pts.length < 2) return;
+  let min = Math.min(...pts), max = Math.max(...pts);
+  if (max === min) { max += 1; min -= 1; }
+  const pad = 6;
+  const x = i => i / (pts.length - 1) * (w - pad * 2) + pad;
+  const y = v => h - pad - (v - min) / (max - min) * (h - pad * 2);
+  ctx.beginPath();
+  pts.forEach((v, i) => i ? ctx.lineTo(x(i), y(v)) : ctx.moveTo(x(i), y(v)));
+  ctx.strokeStyle = accent; ctx.lineWidth = 3; ctx.lineJoin = "round"; ctx.stroke();
+  ctx.lineTo(x(pts.length - 1), h); ctx.lineTo(x(0), h); ctx.closePath();
+  ctx.globalAlpha = 0.15; ctx.fillStyle = accent; ctx.fill(); ctx.globalAlpha = 1;
+  ctx.beginPath(); ctx.arc(x(pts.length - 1), y(pts[pts.length - 1]), 4, 0, Math.PI * 2);
+  ctx.fillStyle = accent; ctx.fill();
+}
+
+let timer = null, nextAt = 0, busy = false;
+async function refresh() {
+  if (busy) return;
+  busy = true;
+  await Promise.all(EXCHANGES.map(async ex => {
+    try {
+      state.data[ex.id] = await ex.fetch();
+      state.ok[ex.id] = true;
+    } catch (e) {
+      state.ok[ex.id] = false;
+    }
+  }));
+  for (const r of computeRows()) {
+    if (r.avg) {
+      const h = state.history[r.c.s];
+      h.push(r.avg);
+      if (h.length > 240) h.shift();
+    }
+  }
+  render();
+  busy = false;
+  nextAt = Date.now() + REFRESH_MS;
+  clearTimeout(timer);
+  timer = setTimeout(refresh, REFRESH_MS);
+}
+
+setInterval(() => {
+  const el = document.getElementById("clock");
+  if (!nextAt) return;
+  const s = Math.max(0, Math.round((nextAt - Date.now()) / 1000));
+  el.textContent = "Обновено " + new Date(nextAt - REFRESH_MS).toLocaleTimeString("bg-BG") + " · следващо след " + s + " с";
+}, 1000);
+
+document.getElementById("refresh").addEventListener("click", refresh);
+buildHead();
+renderStatus();
+refresh();
+</script>
+</body>
+</html>
