@@ -98,6 +98,33 @@ td.na{color:#4A5876}
 .site-footer .brand span{font-size:14px}
 .site-footer p{margin:0}
 
+
+.net{font-weight:600}
+.net.pos{color:var(--live);text-shadow:0 0 12px rgba(127,224,176,.45)}
+.net.neg{color:var(--dim)}
+.net small,.gross small{display:block;font-family:var(--body);font-weight:400;font-size:12px;color:var(--dim)}
+.gross{color:var(--muted)}
+.tag{display:inline-block;font-family:var(--mono);font-size:10px;letter-spacing:.12em;padding:1px 6px;border-radius:4px;margin-bottom:3px}
+td.lo .tag{color:var(--ink);background:var(--live)}
+td.hi .tag{color:var(--ink);background:var(--neon)}
+td.hi{background:rgba(124,203,255,.08);box-shadow:inset 2px 0 0 var(--neon)}
+td.hi .cell-p{color:var(--neon)}
+.tile.good{border-top-color:var(--live)}
+.tile.good .v{color:var(--live)}
+details.fees{background:var(--card);border:1px solid var(--line-2);border-radius:12px;padding:0 22px}
+details.fees summary{cursor:pointer;min-height:52px;display:flex;align-items:center;gap:10px;font-weight:600;list-style:none}
+details.fees summary::-webkit-details-marker{display:none}
+details.fees summary::before{content:"+";font-family:var(--mono);color:var(--neon);width:14px}
+details.fees[open] summary::before{content:"−"}
+details.fees summary span{font-weight:400;color:var(--dim);font-size:14px}
+.fee-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;padding:4px 0 18px}
+.fee-grid label{display:flex;flex-direction:column;gap:6px;font-size:13px;color:var(--muted)}
+.fee-grid input{font-family:var(--mono);font-size:15px;color:var(--text);background:var(--bg);border:1px solid var(--line-3);border-radius:6px;padding:9px 10px;width:100%}
+.fee-grid input:focus{border-color:var(--neon);outline:none}
+.fee-actions{display:flex;flex-wrap:wrap;gap:12px;align-items:center;padding-bottom:20px;font-size:13px;color:var(--dim)}
+button.ghost{background:none;color:var(--muted);border:1px solid var(--line-3)}
+button.ghost:hover{color:var(--text);box-shadow:none;background:none;border-color:var(--neon)}
+
 @media (max-width:600px){
   .wrap{padding:0 16px}
   .hero .wrap{padding-top:32px;padding-bottom:28px}
@@ -126,7 +153,7 @@ td.na{color:#4A5876}
   <div class="wrap">
     <p class="eyebrow">Проект на VYZYA · на живо</p>
     <h1 id="title">Крипто <span>Спред</span></h1>
-    <p class="lead">Цени от пет борси едновременно и разликата между най-евтината и най-скъпата.</p>
+    <p class="lead">Цени от пет борси, приведени в долари, и колко остава след таксите, ако купиш на едната и продадеш на другата.</p>
     <div class="status" id="status"></div>
   </div>
 </section>
@@ -143,12 +170,21 @@ td.na{color:#4A5876}
     </div>
 
     <div class="legend">
-      <span><i class="sw" style="background:var(--low-bg);border:1px solid var(--live)"></i>Най-ниска цена</span>
-      <span><i class="sw" style="background:var(--high-bg);border:1px solid var(--hot)"></i>Най-висока цена</span>
+      <span><i class="sw" style="background:var(--low-bg);border:1px solid var(--live)"></i>Къде да купиш</span>
+      <span><i class="sw" style="background:rgba(124,203,255,.08);border:1px solid var(--neon)"></i>Къде да продадеш</span>
       <span>Под цената: промяна за 24 ч.</span>
     </div>
 
-    <p class="note">Binance, OKX и Bybit котират срещу USDT, Kraken и Coinbase срещу USD. Спредът е разлика в средните цени и не включва такси за търговия и теглене, които обикновено са 0,1–0,5% на страна. Графиката до всяка монета показва средната цена от момента на отваряне на страницата. Обновяване на всеки 15 секунди.</p>
+    <details class="fees" id="fees">
+      <summary>Такси за търговия <span id="fees-sum"></span></summary>
+      <div class="fee-grid" id="fee-grid"></div>
+      <div class="fee-actions">
+        <button type="button" class="ghost" id="fees-reset">Върни стандартните</button>
+        <span>Тейкър такса в %, на една сделка. Сложи своите, ако имаш по-ниско ниво.</span>
+      </div>
+    </details>
+
+    <p class="note">Цените от Binance, OKX и Bybit са в USDT и се преобразуват в долари по текущия курс USDT/USD от Kraken. „Разлика“ е между най-ниската и най-високата последна цена. „Чисто“ е най-добрата сделка: купуваш по цена „продава“ на едната борса, продаваш по цена „купува“ на другата и плащаш тейкър таксата и на двете. Не са включени такси за теглене и времето за прехвърляне между борсите. Стандартните такси са за нов акаунт, ноември 2026. Обновяване на всеки 15 секунди.</p>
   </div>
 </main>
 
@@ -178,6 +214,7 @@ const COINS = [
   { s: "LTC", n: "Litecoin" }
 ];
 const REFRESH_MS = 15000;
+const FEE_KEY = "cs-fees-v1";
 
 async function getJSON(url) {
   const ctrl = new AbortController();
@@ -189,20 +226,20 @@ async function getJSON(url) {
   } finally { clearTimeout(t); }
 }
 
-// Each fetcher returns { SYMBOL: { p: lastPrice, c: change24hPercent } }
+// Each fetcher returns { SYMBOL: { p: last, b: bid, a: ask, c: change24h% } } in the exchange's own quote currency.
 const EXCHANGES = [
   {
-    id: "binance", name: "Binance", quote: "USDT",
+    id: "binance", name: "Binance", quote: "USDT", fee: 0.10,
     async fetch() {
       const syms = JSON.stringify(COINS.map(c => c.s + "USDT"));
       const d = await getJSON("https://api.binance.com/api/v3/ticker/24hr?symbols=" + encodeURIComponent(syms));
       const out = {};
-      for (const t of d) out[t.symbol.replace(/USDT$/, "")] = { p: +t.lastPrice, c: +t.priceChangePercent };
+      for (const t of d) out[t.symbol.replace(/USDT$/, "")] = { p: +t.lastPrice, b: +t.bidPrice, a: +t.askPrice, c: +t.priceChangePercent };
       return out;
     }
   },
   {
-    id: "okx", name: "OKX", quote: "USDT",
+    id: "okx", name: "OKX", quote: "USDT", fee: 0.10,
     async fetch() {
       const d = await getJSON("https://www.okx.com/api/v5/market/tickers?instType=SPOT");
       const want = new Set(COINS.map(c => c.s + "-USDT"));
@@ -210,26 +247,26 @@ const EXCHANGES = [
       for (const t of d.data || []) {
         if (!want.has(t.instId)) continue;
         const p = +t.last, o = +t.open24h;
-        out[t.instId.split("-")[0]] = { p, c: o ? (p - o) / o * 100 : null };
+        out[t.instId.split("-")[0]] = { p, b: +t.bidPx, a: +t.askPx, c: o ? (p - o) / o * 100 : null };
       }
       return out;
     }
   },
   {
-    id: "bybit", name: "Bybit", quote: "USDT",
+    id: "bybit", name: "Bybit", quote: "USDT", fee: 0.10,
     async fetch() {
       const d = await getJSON("https://api.bybit.com/v5/market/tickers?category=spot");
       const want = new Set(COINS.map(c => c.s + "USDT"));
       const out = {};
       for (const t of (d.result && d.result.list) || []) {
         if (!want.has(t.symbol)) continue;
-        out[t.symbol.replace(/USDT$/, "")] = { p: +t.lastPrice, c: +t.price24hPcnt * 100 };
+        out[t.symbol.replace(/USDT$/, "")] = { p: +t.lastPrice, b: +t.bid1Price, a: +t.ask1Price, c: +t.price24hPcnt * 100 };
       }
       return out;
     }
   },
   {
-    id: "kraken", name: "Kraken", quote: "USD",
+    id: "kraken", name: "Kraken", quote: "USD", fee: 0.80,
     pairs: { BTC: "XBTUSD", ETH: "ETHUSD", SOL: "SOLUSD", XRP: "XRPUSD", BNB: "BNBUSD", DOGE: "XDGUSD", ADA: "ADAUSD", LTC: "LTCUSD" },
     async fetch() {
       const out = {};
@@ -242,7 +279,7 @@ const EXCHANGES = [
           const t = Object.values(d.result || {})[0];
           if (!t) return;
           const p = +t.c[0], o = +t.o;
-          out[c.s] = { p, c: o ? (p - o) / o * 100 : null };
+          out[c.s] = { p, b: +t.b[0], a: +t.a[0], c: o ? (p - o) / o * 100 : null };
         } catch (e) { /* pair not listed or failed */ }
       }));
       if (!Object.keys(out).length) throw new Error("no data");
@@ -250,24 +287,69 @@ const EXCHANGES = [
     }
   },
   {
-    id: "coinbase", name: "Coinbase", quote: "USD",
+    id: "coinbase", name: "Coinbase", quote: "USD", fee: 0.60,
+    stats: {}, statsAt: 0,
     async fetch() {
       const out = {};
+      const needStats = Date.now() - this.statsAt > 60000;
       await Promise.all(COINS.map(async c => {
         try {
-          const d = await getJSON("https://api.exchange.coinbase.com/products/" + c.s + "-USD/stats");
-          const p = +d.last, o = +d.open;
-          if (p) out[c.s] = { p, c: o ? (p - o) / o * 100 : null };
+          const t = await getJSON("https://api.exchange.coinbase.com/products/" + c.s + "-USD/ticker");
+          if (needStats) {
+            try { this.stats[c.s] = await getJSON("https://api.exchange.coinbase.com/products/" + c.s + "-USD/stats"); } catch (e) {}
+          }
+          const p = +t.price, st = this.stats[c.s], o = st ? +st.open : 0;
+          if (p) out[c.s] = { p, b: +t.bid, a: +t.ask, c: o ? (p - o) / o * 100 : null };
         } catch (e) { /* not listed (e.g. BNB) */ }
       }));
+      if (needStats) this.statsAt = Date.now();
       if (!Object.keys(out).length) throw new Error("no data");
       return out;
     }
   }
 ];
 
-const state = { data: {}, ok: {}, history: {} };
+// USDT -> USD rate: Kraken first, Coinbase as fallback.
+async function fetchUsdtRate() {
+  try {
+    const d = await getJSON("https://api.kraken.com/0/public/Ticker?pair=USDTUSD");
+    const t = Object.values(d.result || {})[0];
+    const r = t && +t.c[0];
+    if (r > 0.9 && r < 1.1) return { r, src: "Kraken" };
+  } catch (e) {}
+  try {
+    const t = await getJSON("https://api.exchange.coinbase.com/products/USDT-USD/ticker");
+    const r = +t.price;
+    if (r > 0.9 && r < 1.1) return { r, src: "Coinbase" };
+  } catch (e) {}
+  return null;
+}
+
+const state = { raw: {}, ok: {}, history: {}, usdt: null, fees: {} };
 COINS.forEach(c => state.history[c.s] = []);
+
+function loadFees() {
+  let saved = {};
+  try { saved = JSON.parse(localStorage.getItem(FEE_KEY) || "{}") || {}; } catch (e) {}
+  for (const ex of EXCHANGES) {
+    const v = parseFloat(saved[ex.id]);
+    state.fees[ex.id] = isFinite(v) && v >= 0 && v < 5 ? v : ex.fee;
+  }
+}
+function saveFees() {
+  try { localStorage.setItem(FEE_KEY, JSON.stringify(state.fees)); } catch (e) {}
+}
+
+// Convert one exchange's ticker to USD.
+function usd(exId, coin) {
+  const ex = EXCHANGES.find(e => e.id === exId);
+  const v = state.raw[exId] && state.raw[exId][coin];
+  if (!v || !(v.p > 0)) return null;
+  let k = 1;
+  if (ex.quote === "USDT") { if (!state.usdt) return null; k = state.usdt.r; }
+  const b = v.b > 0 ? v.b : v.p, a = v.a > 0 ? v.a : v.p;
+  return { p: v.p * k, b: b * k, a: a * k, c: v.c };
+}
 
 function fmtPrice(p) {
   if (p == null || !isFinite(p)) return "—";
@@ -279,11 +361,50 @@ function fmtPct(x, digits = 2) {
   return (x > 0 ? "+" : "") + x.toFixed(digits) + "%";
 }
 
+function computeRows() {
+  return COINS.map(c => {
+    const prices = EXCHANGES.map(ex => usd(ex.id, c.s));
+    const valid = prices.map((v, i) => v ? { i, v } : null).filter(Boolean);
+    let gross = null, best = null;
+    if (valid.length >= 2) {
+      const lo = Math.min(...valid.map(x => x.v.p)), hi = Math.max(...valid.map(x => x.v.p));
+      gross = (hi - lo) / lo * 100;
+      // Best buy->sell pair after taker fees on both sides.
+      for (const buy of valid) for (const sell of valid) {
+        if (buy.i === sell.i) continue;
+        const fb = state.fees[EXCHANGES[buy.i].id] / 100, fs = state.fees[EXCHANGES[sell.i].id] / 100;
+        const cost = buy.v.a * (1 + fb), get = sell.v.b * (1 - fs);
+        const net = (get - cost) / cost * 100;
+        if (!best || net > best.net) best = { buy: buy.i, sell: sell.i, net };
+      }
+    }
+    const avg = valid.length ? valid.reduce((s, x) => s + x.v.p, 0) / valid.length : null;
+    return { c, prices, gross, best, avg };
+  });
+}
+
 function buildHead() {
   const th = ['<th scope="col">Монета</th>'];
-  for (const ex of EXCHANGES) th.push('<th scope="col">' + ex.name + '<br><span>' + ex.quote + '</span></th>');
-  th.push('<th scope="col">Спред</th>');
+  for (const ex of EXCHANGES) th.push('<th scope="col">' + ex.name + '<br><span>' + (ex.quote === "USDT" ? "USDT → USD" : "USD") + '</span></th>');
+  th.push('<th scope="col">Разлика</th><th scope="col">Чисто<br><span>след такси</span></th>');
   document.getElementById("thead").innerHTML = th.join("");
+}
+
+function buildFees() {
+  document.getElementById("fee-grid").innerHTML = EXCHANGES.map(ex =>
+    '<label for="fee-' + ex.id + '">' + ex.name +
+    '<input id="fee-' + ex.id + '" type="number" inputmode="decimal" min="0" max="5" step="0.01" value="' + state.fees[ex.id] + '"></label>'
+  ).join("");
+  EXCHANGES.forEach(ex => {
+    document.getElementById("fee-" + ex.id).addEventListener("input", e => {
+      const v = parseFloat(e.target.value);
+      if (isFinite(v) && v >= 0 && v < 5) { state.fees[ex.id] = v; saveFees(); render(); }
+    });
+  });
+  updateFeeSum();
+}
+function updateFeeSum() {
+  document.getElementById("fees-sum").textContent = EXCHANGES.map(ex => ex.name + " " + state.fees[ex.id] + "%").join(" · ");
 }
 
 function renderStatus() {
@@ -295,59 +416,53 @@ function renderStatus() {
   }).join("");
 }
 
-function computeRows() {
-  return COINS.map(c => {
-    const prices = EXCHANGES.map(ex => {
-      const v = state.data[ex.id] && state.data[ex.id][c.s];
-      return v && isFinite(v.p) && v.p > 0 ? v : null;
-    });
-    const valid = prices.map((v, i) => v ? { i, p: v.p } : null).filter(Boolean);
-    let lo = null, hi = null, spread = null;
-    if (valid.length >= 2) {
-      lo = valid.reduce((a, b) => b.p < a.p ? b : a);
-      hi = valid.reduce((a, b) => b.p > a.p ? b : a);
-      spread = (hi.p - lo.p) / lo.p * 100;
-    }
-    const avg = valid.length ? valid.reduce((s, v) => s + v.p, 0) / valid.length : null;
-    return { c, prices, lo, hi, spread, avg };
-  });
-}
-
 function render() {
   const rows = computeRows();
-  const tb = document.getElementById("tbody");
-  tb.innerHTML = rows.map(r => {
+  document.getElementById("tbody").innerHTML = rows.map(r => {
     const cells = r.prices.map((v, i) => {
       if (!v) return '<td class="na">—</td>';
-      const cls = r.lo && i === r.lo.i ? "lo" : r.hi && i === r.hi.i ? "hi" : "";
+      let cls = "", tag = "";
+      if (r.best && i === r.best.buy) { cls = "lo"; tag = '<span class="tag">КУПИ</span>'; }
+      else if (r.best && i === r.best.sell) { cls = "hi"; tag = '<span class="tag">ПРОДАЙ</span>'; }
       const dir = v.c > 0 ? "up" : v.c < 0 ? "down" : "";
-      return '<td class="' + cls + '"><span class="cell-p">' + fmtPrice(v.p) + '</span><span class="cell-c ' + dir + '">' + fmtPct(v.c) + '</span></td>';
+      return '<td class="' + cls + '">' + tag + '<span class="cell-p">' + fmtPrice(v.p) + '</span><span class="cell-c ' + dir + '">' + fmtPct(v.c) + '</span></td>';
     }).join("");
-    let sp = '<td class="na">—</td>';
-    if (r.spread != null) {
-      const big = r.spread >= 0.3 ? " big" : "";
-      sp = '<td class="spread' + big + '">' + r.spread.toFixed(3) + '%<small>' +
-        EXCHANGES[r.lo.i].name + ' → ' + EXCHANGES[r.hi.i].name + '</small></td>';
+    const gross = r.gross != null ? '<td class="gross">' + r.gross.toFixed(3) + '%</td>' : '<td class="na">—</td>';
+    let net = '<td class="na">—</td>';
+    if (r.best) {
+      const pos = r.best.net > 0;
+      net = '<td class="net ' + (pos ? "pos" : "neg") + '">' + fmtPct(r.best.net, 3) + '<small>' +
+        EXCHANGES[r.best.buy].name + ' → ' + EXCHANGES[r.best.sell].name + '</small></td>';
     }
     return '<tr><td><div class="coin"><canvas class="spark" data-s="' + r.c.s + '" width="144" height="48" aria-hidden="true"></canvas><div><b>' +
-      r.c.s + '</b><small>' + r.c.n + '</small></div></div></td>' + cells + sp + '</tr>';
+      r.c.s + '</b><small>' + r.c.n + '</small></div></div></td>' + cells + gross + net + '</tr>';
   }).join("");
   document.querySelectorAll("canvas.spark").forEach(cv => drawSpark(cv, state.history[cv.dataset.s]));
   renderTiles(rows);
   renderStatus();
+  updateFeeSum();
 }
 
 function renderTiles(rows) {
-  const withSpread = rows.filter(r => r.spread != null);
-  const best = withSpread.sort((a, b) => b.spread - a.spread)[0];
+  const withBest = rows.filter(r => r.best).sort((a, b) => b.best.net - a.best.net);
+  const top = withBest[0];
   const btc = rows.find(r => r.c.s === "BTC");
-  const okCount = EXCHANGES.filter(ex => state.ok[ex.id]).length;
   const tiles = [];
-  if (btc && btc.avg) tiles.push(['Bitcoin, средна цена', '$' + fmtPrice(btc.avg), btc.spread != null ? 'Спред ' + btc.spread.toFixed(3) + '%' : '']);
-  if (best) tiles.push(['Най-голям спред', best.c.s + ' ' + best.spread.toFixed(3) + '%', 'Купи от ' + EXCHANGES[best.lo.i].name + ', продай в ' + EXCHANGES[best.hi.i].name]);
-  tiles.push(['Борси на линия', okCount + ' от ' + EXCHANGES.length, okCount < EXCHANGES.length ? 'Някои не отговарят' : 'Всички отговарят']);
+  if (btc && btc.avg) tiles.push({ k: "Bitcoin, средна цена", v: "$" + fmtPrice(btc.avg), d: btc.gross != null ? "Разлика между борсите " + btc.gross.toFixed(3) + "%" : "" });
+  if (top) {
+    const pos = top.best.net > 0;
+    tiles.push({
+      k: pos ? "Печеливша сделка" : "Най-добра сделка",
+      v: top.c.s + " " + fmtPct(top.best.net, 3),
+      d: (pos ? "Купи от " : "Няма печалба след таксите. Най-близо: ") + EXCHANGES[top.best.buy].name + (pos ? ", продай в " : " → ") + EXCHANGES[top.best.sell].name,
+      good: pos
+    });
+  }
+  tiles.push(state.usdt
+    ? { k: "Курс USDT / USD", v: state.usdt.r.toFixed(5), d: "USDT е " + ((state.usdt.r - 1) * 100).toFixed(3) + "% спрямо долара · " + state.usdt.src }
+    : { k: "Курс USDT / USD", v: "—", d: "Няма курс, затова цените в USDT не се показват" });
   document.getElementById("tiles").innerHTML = tiles.map(t =>
-    '<div class="tile"><div class="k">' + t[0] + '</div><div class="v">' + t[1] + '</div><div class="d">' + t[2] + '</div></div>').join("");
+    '<div class="tile' + (t.good ? " good" : "") + '"><div class="k">' + t.k + '</div><div class="v">' + t.v + '</div><div class="d">' + t.d + '</div></div>').join("");
 }
 
 function drawSpark(cv, pts) {
@@ -378,14 +493,15 @@ let timer = null, nextAt = 0, busy = false;
 async function refresh() {
   if (busy) return;
   busy = true;
-  await Promise.all(EXCHANGES.map(async ex => {
+  const rateP = fetchUsdtRate().then(r => { if (r) state.usdt = r; });
+  await Promise.all([rateP, ...EXCHANGES.map(async ex => {
     try {
-      state.data[ex.id] = await ex.fetch();
+      state.raw[ex.id] = await ex.fetch();
       state.ok[ex.id] = true;
     } catch (e) {
       state.ok[ex.id] = false;
     }
-  }));
+  })]);
   for (const r of computeRows()) {
     if (r.avg) {
       const h = state.history[r.c.s];
@@ -408,7 +524,13 @@ setInterval(() => {
 }, 1000);
 
 document.getElementById("refresh").addEventListener("click", refresh);
+document.getElementById("fees-reset").addEventListener("click", () => {
+  EXCHANGES.forEach(ex => { state.fees[ex.id] = ex.fee; const el = document.getElementById("fee-" + ex.id); if (el) el.value = ex.fee; });
+  saveFees(); render();
+});
+loadFees();
 buildHead();
+buildFees();
 renderStatus();
 refresh();
 </script>
